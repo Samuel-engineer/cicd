@@ -40,24 +40,27 @@ jobs:
         docker build -t mon-api-hello-world .
 
   push-to-registry:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' # Ne push que sur les pushes, pas les PRs
+      needs: build-and-test
+      runs-on: ubuntu-latest
+      steps:
+        # ÉTAPE CRUCIALE : Transformer le nom en minuscules
+        - name: Lowercase the repo name
+          run: |
+            echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-    steps:
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        - name: Login to GitHub Container Registry
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and push
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        # Le nom de l'image sur GHCR (toujours en minuscules !)
-        tags: |
-          ghcr.io/monapi:latest
-          ghcr.io/monapi:${{ github.sha }}
+        - name: Build and push
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            push: true
+            # On utilise la variable IMAGE_NAME créée plus haut
+            tags: |
+              ghcr.io/${{ env.IMAGE_NAME }}:latest
+              ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
